@@ -2,7 +2,6 @@ import React from 'react';
 import './ImageLinkForm.css';
 
 const ImageLinkForm = ({ onInputChange, onPictureSubmit }) => {
-  // Destructure onInputChange and onPictureSubmit from the props.
   return (
     <div>
       <p className='f3'>
@@ -13,12 +12,12 @@ const ImageLinkForm = ({ onInputChange, onPictureSubmit }) => {
           <input
             className='f4 pa2 w-70 center'
             type='text'
+            name='imgLinkInput'
             onChange={onInputChange}
           />{' '}
-          {/* onChange is a react synthetic event that mimics what the html does whenever input changes. */}
           <button
             className='w-30 grow f4 link ph3 pv2 dib white bg-light-purple'
-            onClick={onPictureSubmit} /* On click do the onPictureSubmit */
+            onClick={onPictureSubmit}
           >
             Detect
           </button>

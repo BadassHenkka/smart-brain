@@ -2,7 +2,6 @@ import React from 'react';
 import './FaceRecognition.css';
 
 const FaceRecognition = ({ imageUrl, box }) => {
-  // Destructure imageUrl.
   return (
     <div className='center ma'>
       <div className='absolute mt2'>
@@ -13,7 +12,6 @@ const FaceRecognition = ({ imageUrl, box }) => {
           width='500px'
           height='auto'
         />{' '}
-        {/* imageUrl is used as the source. */}
         <div
           className='bounding-box'
           style={{

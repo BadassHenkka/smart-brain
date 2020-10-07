@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, { useState, useReducer } from 'react';
 import Particles from 'react-particles-js';
 import Navigation from './components/Navigation/Navigation';
 import Signin from './components/Signin/Signin';
@@ -7,127 +7,62 @@ import FaceRecognition from './components/FaceRecognition/FaceRecognition';
 import Logo from './components/Logo/Logo';
 import ImageLinkForm from './components/ImageLinkForm/ImageLinkForm';
 import Rank from './components/Rank/Rank';
+import {
+  particlesOptions,
+  initialAppState,
+  initialUserState,
+} from './constants';
+import { calculateFaceLocation } from './utils';
 import './App.css';
 import 'tachyons';
 
-const particlesOptions = {
-  particles: {
-    number: {
-      value: 150,
-      density: {
-        enable: true,
-        value_area: 800,
-      },
-    },
-    shape: {
-      type: 'circle',
-      stroke: {
-        width: 0,
-        color: '#000000',
-      },
-      polygon: {
-        nb_sides: 5,
-      },
-    },
-    color: {
-      value: '#ffffff',
-    },
-    opacity: {
-      value: 1,
-      random: false,
-      anim: {
-        enable: false,
-        speed: 1,
-        opacity_min: 1,
-        sync: true,
-      },
-    },
-  },
-  interactivity: {
-    detect_on: 'window',
-    events: {
-      onhover: {
-        enable: true,
-        mode: 'repulse',
-      },
-      resize: true,
-    },
-    modes: {
-      repulse: {
-        distance: 100,
-        duration: 0.4,
-      },
-    },
-  },
-};
+const reducer = (appState, action) => {
+  switch (action.type) {
+    case 'resetAppState':
+      return initialAppState;
+    case 'resetUserState':
+      return initialUserState;
+    default:
+      const result = { ...appState };
+      result[action.type] = action.value;
 
-const initialState = {
-  input: '', //state for input
-  imageUrl: '', //state for the imageUrl
-  box: {},
-  route: 'signin', // route state keeps track of where we are on the page
-  isSignedIn: false,
-  user: {
-    id: '',
-    name: '',
-    email: '',
-    password: '',
-    entries: 0,
-    joined: '',
-  },
-};
-
-class App extends Component {
-  constructor() {
-    super();
-    this.state = initialState;
+      return result;
   }
+};
 
-  loadUser = (data) => {
-    this.setState({
-      user: {
-        id: data.id,
-        name: data.name,
-        email: data.email,
-        password: data.password,
-        entries: data.entries,
-        joined: data.joined,
-      },
+const App = () => {
+  const [appState, dispatch] = useReducer(reducer, initialAppState);
+  const { imgLinkInput, imageUrl, box, route, isSignedIn } = appState;
+  const [user, setUser] = useState(initialUserState);
+
+  const loadUser = (data) => {
+    setUser({
+      id: data.id,
+      name: data.name,
+      email: data.email,
+      password: data.password,
+      entries: data.entries,
+      joined: data.joined,
     });
   };
 
-  calculateFaceLocation = (data) => {
-    // This function calculates the face location based on the inputs from Clarifai
-    const clarifaiFace =
-      data.outputs[0].data.regions[0].region_info.bounding_box; // this bounding box is a % of the image
-    const image = document.getElementById('inputimage'); // Gets the image element from FaceRecognition
-    const width = Number(image.width);
-    const height = Number(image.height);
-    return {
-      leftCol: clarifaiFace.left_col * width,
-      topRow: clarifaiFace.top_row * height,
-      rightCol: width - clarifaiFace.right_col * width,
-      bottomRow: height - clarifaiFace.bottom_row * height,
-    }; // We're returning an object that'll be used to fill the box state. The object figures out the corner dots that form the box.
+  const onInputChange = (event) => {
+    const { name, value } = event.target;
+    dispatch({ type: name, value });
   };
 
-  displayFacebox = (box) => {
-    // this grabs the object from calculateFaceLocation
-    this.setState({ box: box });
+  // Get the object from calculateFaceLocation and set it to box state
+  const displayFacebox = (boxValues, dispatch) => {
+    dispatch({ type: 'box', value: boxValues });
   };
 
-  onInputChange = (event) => {
-    // Event listener for the input change. Event.target.value gives us the value from the input.
-    this.setState({ input: event.target.value });
-  };
-
-  onPictureSubmit = () => {
-    this.setState({ imageUrl: this.state.input }); // This will have the imageUrl updated with whatever the input is.
+  const onPictureSubmit = () => {
+    dispatch({ type: 'imageUrl', value: imgLinkInput });
     fetch('https://immense-gorge-98900.herokuapp.com/imageurl', {
       method: 'post',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        input: this.state.input,
+        input: imgLinkInput,
       }),
     })
       .then((response) => response.json())
@@ -137,63 +72,57 @@ class App extends Component {
             method: 'put',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              id: this.state.user.id,
+              id: user.id,
             }),
           })
             .then((response) => response.json())
             .then((count) => {
-              this.setState(Object.assign(this.state.user, { entries: count }));
+              setUser((prevUser) => {
+                return {
+                  ...prevUser,
+                  entries: count,
+                };
+              });
             })
             .catch(console.log);
         }
-        this.displayFacebox(this.calculateFaceLocation(response));
+        displayFacebox(calculateFaceLocation(response), dispatch);
       })
       .catch((err) => console.log(err));
   };
 
-  onRouteChange = (route) => {
+  const onRouteChange = (route) => {
     if (route === 'signout') {
-      this.setState(initialState);
+      // Clear state
+      dispatch({ type: 'resetUserState' });
+      dispatch({ type: 'resetAppState' });
     } else if (route === 'home') {
-      this.setState({ isSignedIn: true });
+      dispatch({ type: 'isSignedIn', value: true });
     }
-    this.setState({ route: route });
+    dispatch({ type: 'route', value: route });
   };
 
-  render() {
-    const { isSignedIn, imageUrl, route, box } = this.state; // destructure is used to clean up code so I don't need to use this.state all the time
-    return (
-      <div className='App'>
-        <Particles className='particles' params={particlesOptions} />
-        <Navigation
-          isSignedIn={isSignedIn}
-          onRouteChange={this.onRouteChange}
-        />
-        {route === 'home' ? (
-          <div>
-            <Logo />
-            <Rank
-              name={this.state.user.name}
-              entries={this.state.user.entries}
-            />
-            <ImageLinkForm
-              onInputChange={this.onInputChange} // onInputChange is passed on as a prop for the ImageLinkForm component.
-              onPictureSubmit={this.onPictureSubmit}
-            />
-            <FaceRecognition box={box} imageUrl={imageUrl} />{' '}
-            {/* With these I can use box and imageUrl in FaceRecognition component. */}
-          </div>
-        ) : route === 'signin' ? (
-          <Signin loadUser={this.loadUser} onRouteChange={this.onRouteChange} />
-        ) : (
-          <Register
-            loadUser={this.loadUser}
-            onRouteChange={this.onRouteChange}
+  return (
+    <div className='App'>
+      <Particles className='particles' params={particlesOptions} />
+      <Navigation isSignedIn={isSignedIn} onRouteChange={onRouteChange} />
+      {route === 'home' ? (
+        <div>
+          <Logo />
+          <Rank name={user.name} entries={user.entries} />
+          <ImageLinkForm
+            onInputChange={onInputChange}
+            onPictureSubmit={onPictureSubmit}
           />
-        )}
-      </div>
-    );
-  }
-}
+          <FaceRecognition box={box} imageUrl={imageUrl} />{' '}
+        </div>
+      ) : route === 'signin' ? (
+        <Signin loadUser={loadUser} onRouteChange={onRouteChange} />
+      ) : (
+        <Register loadUser={loadUser} onRouteChange={onRouteChange} />
+      )}
+    </div>
+  );
+};
 
 export default App;
