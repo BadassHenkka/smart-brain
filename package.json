@@ -4,13 +4,13 @@
   "private": true,
   "dependencies": {
     "bcrypt-nodejs": "0.0.3",
-    "clarifai": "^2.9.0",
-    "react": "^16.8.1",
-    "react-dom": "^16.8.1",
-    "react-particles-js": "^2.4.2",
-    "react-scripts": "^2.1.5",
+    "clarifai": "^2.9.1",
+    "react": "^16.13.1",
+    "react-dom": "^16.13.1",
+    "react-particles-js": "^2.7.1",
+    "react-scripts": "^2.1.8",
     "react-tilt": "^0.1.4",
-    "tachyons": "^4.11.1"
+    "tachyons": "^4.12.0"
   },
   "scripts": {
     "start": "react-scripts start",
